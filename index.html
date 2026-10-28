@@ -3,274 +3,113 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Consumo diário — tokens e custo</title>
+  <title>Consumo diário — terminal</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --paper: #f2f4f1;
-      --surface: #fbfcfa;
-      --ink: #17201f;
-      --muted: #5c6a67;
-      --line: #d6ddd8;
-      --line-strong: #b9c3bd;
-      --accent: #1f5bd6;
-      --accent-soft: #e3ebfb;
-      --radius: 3px;
-      --font-ui: "IBM Plex Sans", system-ui, sans-serif;
-      --font-data: "IBM Plex Mono", ui-monospace, monospace;
-      --font-display: "Instrument Serif", Georgia, serif;
+      --bg: #0a0a0a;
+      --surface: #121212;
+      --fg: #e0e0e0;
+      --muted: #6b6b6b;
+      --accent: #00ff00;
+      --accent-dim: rgba(0,255,0,.14);
+      --line: #3a3a3a;
+      --border: #252525;
+      --radius: 0px;
+      --font-mono: "Fira Code", "Anonymous Pro", "Courier New", monospace;
+      --font-body: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
 
     * { box-sizing: border-box; }
-
-    html { -webkit-text-size-adjust: 100%; }
+    html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
 
     body {
       margin: 0;
       min-height: 100vh;
-      background: var(--paper);
-      color: var(--ink);
-      font-family: var(--font-ui);
-      font-size: 15px;
-      line-height: 1.5;
-      background-image:
-        linear-gradient(to right, rgba(23,32,31,.035) 1px, transparent 1px);
-      background-size: 96px 100%;
-    }
-
-    .wrap {
-      max-width: 1120px;
-      margin: 0 auto;
-      padding: 56px 32px 96px;
-    }
-
-    header.masthead {
-      display: flex;
-      align-items: flex-end;
-      justify-content: space-between;
-      gap: 24px;
-      padding-bottom: 28px;
-      border-bottom: 1px solid var(--ink);
-    }
-
-    .title-block h1 {
-      font-family: var(--font-display);
-      font-weight: 400;
-      font-size: clamp(40px, 6vw, 64px);
-      line-height: .95;
-      letter-spacing: -.01em;
-      margin: 0;
-    }
-
-    .title-block p {
-      margin: 12px 0 0;
-      color: var(--muted);
+      background: var(--bg);
+      color: var(--fg);
+      font-family: var(--font-body);
       font-size: 14px;
-      max-width: 46ch;
+      line-height: 1.5;
     }
 
-    .actions {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 8px;
-      flex-shrink: 0;
-    }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 20px; }
 
-    button.refresh {
-      font: 500 14px/1 var(--font-ui);
-      color: #fff;
-      background: var(--ink);
-      border: 1px solid var(--ink);
-      border-radius: var(--radius);
-      padding: 12px 22px;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 9px;
-      transition: background .15s ease, transform .06s ease;
+    /* header */
+    header { display: flex; gap: 16px; align-items: center; margin-bottom: 24px; }
+    .title-block h1 { font-family: var(--font-mono); font-size: 28px; font-weight: 400; letter-spacing: -.02em; margin: 0; }
+    .title-block p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+
+    /* filtros */
+    .filters { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .filters select, .filters input {
+      font-family: var(--font-mono); font-size: 12px; padding: 6px 10px;
+      background: var(--border); border: 1px solid var(--line);
+      color: var(--fg); border-radius: 0; min-width: 150px;
     }
-    button.refresh:hover { background: var(--accent); border-color: var(--accent); }
-    button.refresh:active { transform: translateY(1px); }
-    button.refresh:disabled { opacity: .55; cursor: progress; }
-    button.refresh.cooldown:disabled { cursor: not-allowed; }
-    button.refresh:focus-visible {
-      outline: 2px solid var(--accent);
-      outline-offset: 3px;
-    }
-    button.refresh svg { width: 15px; height: 15px; }
-    button.refresh.busy svg { animation: spin .9s linear infinite; }
+    .filters input { flex: 1; min-width: 220px; }
+    .filters select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 12 8' fill='none' stroke='%236b6b6b'%3E%3Cpath d='M2 2l5 5 5-5'%3E%3C/path%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px top 50%; padding-right: 28px; }
+    .filters select:focus, .filters input:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+    .refresh { font: 500 13px/1 var(--font-mono); color: #fff; background: var(--ink); border: 1px solid var(--ink); border-radius: 0; padding: 8px 16px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: background .12s ease; }
+    .refresh:hover { background: var(--accent); color: #000; }
+    .refresh:active { background: #00cc00; }
+    .refresh:disabled { opacity: .4; cursor: not-allowed; }
+    .refresh:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .refresh svg { width: 14px; height: 14px; }
+    .refresh.busy svg { animation: spin .9s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    .status {
-      font-family: var(--font-data);
-      font-size: 11.5px;
-      color: var(--muted);
-      min-height: 1em;
-      text-align: right;
-    }
-    .status.error { color: #b4262b; }
+    .status { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
 
-    /* ---- ledger summary ---- */
-    .summary {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      border-bottom: 1px solid var(--line-strong);
-    }
-    .summary .cell {
-      padding: 22px 24px 20px;
-      border-left: 1px solid var(--line);
-    }
-    .summary .cell:first-child { border-left: 0; padding-left: 0; }
-    .summary .label {
-      font-size: 12px;
-      color: var(--muted);
-      letter-spacing: .01em;
-    }
-    .summary .value {
-      font-family: var(--font-data);
-      font-variant-numeric: tabular-nums;
-      font-size: clamp(22px, 3vw, 30px);
-      font-weight: 500;
-      letter-spacing: -.02em;
-      margin-top: 4px;
-    }
-    .summary .value .unit {
-      font-size: .5em;
-      color: var(--muted);
-      margin-left: 4px;
-      letter-spacing: 0;
-    }
+    /* summary */
+    .summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px; padding: 16px 20px; background: var(--surface); border: 1px solid var(--line); }
+    .summary .cell { display: flex; flex-direction: column; }
+    .summary .label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+    .summary .value { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 22px; font-weight: 500; }
 
-    /* ---- table ---- */
-    .table-shell {
-      margin-top: 34px;
-      overflow-x: auto;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 14px;
-    }
-    caption {
-      text-align: left;
-      font-size: 12px;
-      color: var(--muted);
-      padding-bottom: 10px;
-    }
-    thead th {
-      font-weight: 500;
-      font-size: 11.5px;
-      color: var(--muted);
-      text-align: left;
-      padding: 0 12px 10px;
-      border-bottom: 1px solid var(--line-strong);
-      white-space: nowrap;
-    }
+    /* table */
+    .table-shell { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    caption { text-align: left; font-size: 11px; color: var(--muted); padding: 8px 0 4px; }
+    thead th { font-family: var(--font-mono); font-size: 10px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing:.08em; padding: 0 8px 6px; border-bottom: 1px solid var(--line); white-space: nowrap; cursor: pointer; user-select: none; }
+    thead th:hover { color: var(--fg); }
+    thead th.asc:after { content: " ▼"; color: var(--accent); font-size: .6em; }
+    thead th.desc:after { content: " ▲"; color: var(--accent); font-size: .6em; }
     thead th:first-child { padding-left: 0; }
     thead th.num { text-align: right; }
-    tbody td {
-      padding: 13px 12px;
-      border-bottom: 1px solid var(--line);
-      vertical-align: middle;
-    }
+    tbody td { padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
     tbody td:first-child { padding-left: 0; }
-    tbody tr { transition: background .12s ease; }
-    tbody tr:hover { background: var(--surface); }
-    tbody tr:last-child td { border-bottom: 1px solid var(--line-strong); }
+    tbody tr { transition: background .1s ease; }
+    tbody tr:hover { background: rgba(0,255,0,.06); }
+    tbody tr:last-child td { border-bottom: 1px solid var(--border); }
 
-    .date {
-      font-family: var(--font-data);
-      font-variant-numeric: tabular-nums;
-      white-space: nowrap;
-      color: var(--ink);
-    }
-    .agent {
-      display: inline-block;
-      font-size: 12px;
-      padding: 2px 8px;
-      border: 1px solid var(--line-strong);
-      border-radius: 999px;
-      color: var(--muted);
-      white-space: nowrap;
-    }
-    .models {
-      color: var(--muted);
-      font-size: 12.5px;
-      max-width: 220px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    td.num {
-      text-align: right;
-      font-family: var(--font-data);
-      font-variant-numeric: tabular-nums;
-      white-space: nowrap;
-      color: #2c3735;
-    }
+    .date { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--fg); white-space: nowrap; }
+    .agent { display: inline-block; font-size: 11px; padding: 1px 6px; background: var(--surface); border: 1px solid var(--line); border-radius: 0; color: var(--accent); white-space: nowrap; }
+    .models { color: var(--muted); font-size: 11px; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    td.num { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--fg); white-space: nowrap; }
     td.total { position: relative; }
-    .bar {
-      position: absolute;
-      left: 0; bottom: 6px;
-      height: 3px;
-      background: var(--accent);
-      opacity: .28;
-      border-radius: 2px;
-      transition: width .35s ease;
-    }
-    td.cost {
-      text-align: right;
-      font-family: var(--font-data);
-      font-variant-numeric: tabular-nums;
-      font-weight: 600;
-      white-space: nowrap;
-    }
+    .bar { position: absolute; left: 0; bottom: 4px; height: 2px; background: var(--accent); opacity: .3; border-radius: 0; transition: width .3s ease; }
+    td.cost { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--accent); }
 
-    tfoot td {
-      padding: 14px 12px 0;
-      border-top: 1px solid var(--ink);
-      font-family: var(--font-data);
-      font-variant-numeric: tabular-nums;
-      font-size: 13px;
-      color: var(--muted);
-    }
+    tfoot td { padding: 12px 8px 0; border-top: 1px solid var(--line); font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
     tfoot td:first-child { padding-left: 0; text-align: left; }
     tfoot td.num, tfoot td.cost { text-align: right; }
-    tfoot td.cost { color: var(--ink); font-weight: 600; }
+    tfoot td.cost { color: var(--fg); font-weight: 600; }
 
-    .empty, .error-row {
-      padding: 48px 0;
-      text-align: center;
-      color: var(--muted);
-      font-size: 14px;
-    }
-    .error-row { color: #b4262b; }
+    .empty, .error-row { padding: 40px 0; text-align: center; color: var(--muted); font-size: 14px; }
+    .error-row { color: #ff6b6b; }
 
-    footer.note {
-      margin-top: 28px;
-      font-size: 12px;
-      color: var(--muted);
-    }
-    footer.note code {
-      font-family: var(--font-data);
-      font-size: 11.5px;
-      background: var(--accent-soft);
-      color: #23408a;
-      padding: 2px 6px;
-      border-radius: var(--radius);
-    }
+    footer.note { margin-top: 18px; font-size: 11px; color: var(--muted); }
+    footer.note code { font-family: var(--font-mono); font-size: 11px; background: var(--surface); color: var(--accent); padding: 2px 6px; border-radius: 0; }
 
-    @media (max-width: 720px) {
-      .wrap { padding: 36px 18px 64px; }
-      header.masthead { flex-direction: column; align-items: flex-start; }
-      .actions { align-items: flex-start; }
+    @media (max-width: 600px) {
+      .wrap { padding: 16px 12px; }
       .summary { grid-template-columns: 1fr; }
-      .summary .cell { border-left: 0; border-top: 1px solid var(--line); padding-left: 0; padding-right: 0; }
-      .summary .cell:first-child { border-top: 0; }
-      .models { max-width: 130px; }
+      .filters { gap: 4px; }
+      .filters input { min-width: 160px; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -280,12 +119,17 @@
 </head>
 <body>
   <main class="wrap">
-    <header class="masthead">
+    <header>
       <div class="title-block">
         <h1>Consumo diário</h1>
-        <p>Tokens e custo por dia nas suas ferramentas de código. Fonte: <code>ccusage daily</code>.</p>
+        <p>Tokens e custo por dia — <code>ccusage daily</code></p>
       </div>
-      <div class="actions">
+
+      <div class="filters" role="region" aria-label="Filtros de visualização">
+        <select id="filterAgent" aria-label="Filtrar por agente">
+          <option value="">Todos os agentes</option>
+        </select>
+        <input id="filterModel" type="search" placeholder="Buscar modelo…" aria-label="Filtrar por modelo">
         <button id="btnUpdate" class="refresh" type="button">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M21 12a9 9 0 1 1-2.64-6.36"></path>
@@ -293,23 +137,20 @@
           </svg>
           <span id="btnLabel">Atualizar</span>
         </button>
+        <button id="btnExport" class="refresh" type="button" aria-label="Exportar dados como JSON">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3a10 10 0 1 1 20 0v-2a2 2 0 0 1 2-2h3m3 0v10"></path>
+          </svg>
+          <span class="sr-only">Exportar</span>
+        </button>
         <span id="status" class="status" role="status" aria-live="polite"></span>
       </div>
     </header>
 
     <section class="summary" aria-label="Resumo">
-      <div class="cell">
-        <div class="label">Custo total</div>
-        <div class="value" id="sumCost">—</div>
-      </div>
-      <div class="cell">
-        <div class="label">Tokens totais</div>
-        <div class="value" id="sumTokens">—</div>
-      </div>
-      <div class="cell">
-        <div class="label">Dias registrados</div>
-        <div class="value" id="sumDays">—</div>
-      </div>
+      <div class="cell"><div class="label">Custo total</div><div class="value" id="sumCost">—</div></div>
+      <div class="cell"><div class="label">Tokens totais</div><div class="value" id="sumTokens">—</div></div>
+      <div class="cell"><div class="label">Dias registrados</div><div class="value" id="sumDays">—</div></div>
     </section>
 
     <div class="table-shell">
@@ -317,14 +158,14 @@
         <caption id="caption">Carregando…</caption>
         <thead>
           <tr>
-            <th scope="col">Data</th>
-            <th scope="col">Agente</th>
-            <th scope="col">Modelos</th>
-            <th scope="col" class="num">Entrada</th>
-            <th scope="col" class="num">Saída</th>
+            <th scope="col" data-key="period">Data <span class="sort-indicator"></span></th>
+            <th scope="col">Agente <span class="sort-indicator"></span></th>
+            <th scope="col">Modelos <span class="sort-indicator"></span></th>
+            <th scope="col" data-key="inputTokens" class="num">Entrada</th>
+            <th scope="col" data-key="outputTokens" class="num">Saída</th>
             <th scope="col" class="num">Cache</th>
-            <th scope="col" class="num">Total</th>
-            <th scope="col" class="num">Custo</th>
+            <th scope="col" data-key="totalTokens" class="num">Total <span class="sort-indicator"></span></th>
+            <th scope="col" data-key="totalCost" class="num">Custo</th>
           </tr>
         </thead>
         <tbody id="tbody">
@@ -344,7 +185,7 @@
     </div>
 
     <footer class="note">
-      Dados em <code>sessionStorage</code>; atualizar reexecuta <code>npx ccusage@latest daily --json</code> na sua máquina.
+      Dados em <code>sessionStorage</code>. Clique nos cabeçalhos para ordenar. <button id="btnClear" class="refresh" style="margin-left:8px; padding:4px 8px; font-size:11px;">Limpar cache</button>
     </footer>
   </main>
 
@@ -360,9 +201,13 @@
     const statusEl = $('status');
     const caption = $('caption');
     const tfoot = $('tfoot');
+    const filterAgent = $('filterAgent');
+    const filterModel = $('filterModel');
 
     let rows = [];
     let maxTotal = 1;
+    let sortKey = 'period';
+    let sortDir = 'desc';
 
     function fmtDate(period) {
       if (!period) return '—';
@@ -371,8 +216,10 @@
       return `${d}/${m}/${y}`;
     }
 
-    function esc(s) {
-      return String(s).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    function escHtml(s) {
+      const div = document.createElement('div');
+      div.textContent = s;
+      return div.innerHTML;
     }
 
     function setStatus(text, isError = false) {
@@ -380,23 +227,40 @@
       statusEl.classList.toggle('error', isError);
     }
 
+    function applyFilters(data) {
+      const agentVal = filterAgent.value.trim().toLowerCase();
+      const modelVal = filterModel.value.trim().toLowerCase();
+      return data.filter(r => {
+        const agentMatch = !agentVal || (r.agent || '').toLowerCase().includes(agentVal);
+        const models = r.modelsUsed || [];
+        const modelMatch = !modelVal || models.some(m => m.toLowerCase().includes(modelVal));
+        return agentMatch && modelMatch;
+      });
+    }
+
     function summarize(data) {
       const tokens = data.reduce((a, r) => a + (r.totalTokens || 0), 0);
       const cost = data.reduce((a, r) => a + (r.totalCost || 0), 0);
       const days = new Set(data.map((r) => r.period)).size;
-      $('sumCost').innerHTML = cf.format(cost);
-      $('sumTokens').innerHTML = `${compact.format(tokens)}<span class="unit">tokens</span>`;
-      $('sumDays').innerHTML = `${nf.format(days)}<span class="unit">${days === 1 ? 'dia' : 'dias'}</span>`;
+      $('sumCost').textContent = cf.format(cost);
+      $('sumTokens').textContent = `${compact.format(tokens)} tokens`;
+      $('sumDays').textContent = `${nf.format(days)} ${days === 1 ? 'dia' : 'dias'}`;
     }
 
     function render(data) {
+      data = applyFilters(data);
       rows = Array.isArray(data) ? data.slice() : [];
-      rows.sort((a, b) => String(b.period).localeCompare(String(a.period)));
+      rows.sort((a, b) => {
+        const av = sortDir === 'desc' ? b[sortKey] : a[sortKey];
+        const bv = sortDir === 'desc' ? a[sortKey] : b[sortKey];
+        if (typeof av === 'string') return av.localeCompare(bv);
+        return av - bv;
+      });
       maxTotal = Math.max(1, ...rows.map((r) => r.totalTokens || 0));
 
       tbody.innerHTML = '';
       if (!rows.length) {
-        tbody.innerHTML = '<tr><td colspan="8" class="empty">Nenhum registro de uso ainda.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="empty">Nenhum registro corresponde aos filtros.</td></tr>';
         tfoot.hidden = true;
         caption.textContent = 'Sem dados';
         summarize([]);
@@ -413,8 +277,8 @@
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td class="date">${fmtDate(r.period)}</td>
-          <td><span class="agent">${esc(r.agent || '—')}</span></td>
-          <td class="models" title="${esc(models)}">${esc(models || '—')}</td>
+          <td><span class="agent">${escHtml(r.agent || '—')}</span></td>
+          <td class="models" title="${escHtml(models)}">${escHtml(models || '—')}</td>
           <td class="num">${nf.format(r.inputTokens || 0)}</td>
           <td class="num">${nf.format(r.outputTokens || 0)}</td>
           <td class="num">${nf.format(cache)}</td>
@@ -439,45 +303,30 @@
     }
 
     function renderError(msg) {
-      tbody.innerHTML = `<tr><td colspan="8" class="error-row">${esc(msg)}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" class="error-row">${escHtml(msg)}</td></tr>`;
       tfoot.hidden = true;
       caption.textContent = 'Falha ao carregar';
       summarize([]);
     }
 
-    const COOLDOWN_MS = 5 * 60 * 1000;
-    let cooldownTimer = null;
-
-    function cooldownLeft() {
-      const last = Number(localStorage.getItem('ccusageLastCall')) || 0;
-      return Math.max(0, last + COOLDOWN_MS - Date.now());
-    }
-
-    function tickCooldown() {
-      const left = cooldownLeft();
-      if (left > 0) {
-        btn.disabled = true;
-        btn.classList.add('cooldown');
-        const m = Math.floor(left / 60000);
-        const s = Math.floor((left % 60000) / 1000);
-        btnLabel.textContent = `Aguarde ${m}:${String(s).padStart(2, '0')}`;
-        if (!cooldownTimer) cooldownTimer = setInterval(tickCooldown, 1000);
-        return;
-      }
-      if (cooldownTimer) {
-        clearInterval(cooldownTimer);
-        cooldownTimer = null;
-      }
-      btn.classList.remove('cooldown');
-      if (!busy) {
-        btn.disabled = false;
-        btnLabel.textContent = 'Atualizar';
-      }
+    // populando agente no filtro
+    function populateAgentFilter(data) {
+      const agents = [...new Set(data.map((r) => r.agent).filter(Boolean))].sort();
+      const optAll = document.createElement('option');
+      optAll.value = '';
+      optAll.textContent = 'Todos os agentes';
+      filterAgent.appendChild(optAll);
+      agents.forEach(a => {
+        const opt = document.createElement('option');
+        opt.value = a;
+        opt.textContent = a;
+        filterAgent.appendChild(opt);
+      });
     }
 
     let busy = false;
     async function update() {
-      if (busy || cooldownLeft() > 0) return;
+      if (busy) return;
       busy = true;
       btn.disabled = true;
       btn.classList.add('busy');
@@ -492,35 +341,71 @@
         const data = Array.isArray(body) ? body : [];
         sessionStorage.setItem('ccusageDaily', JSON.stringify(data));
         render(data);
-        const secs = ((performance.now() - started) / 1000).toFixed(1);
-        setStatus(`atualizado em ${secs}s`);
+        setStatus(`atualizado em ${((performance.now() - started) / 1000).toFixed(1)}s`);
       } catch (err) {
         renderError('Não foi possível executar ccusage. ' + err.message);
         setStatus('falhou', true);
       } finally {
         busy = false;
+        btn.disabled = false;
         btn.classList.remove('busy');
-        localStorage.setItem('ccusageLastCall', String(Date.now()));
-        tickCooldown();
+        btnLabel.textContent = 'Atualizar';
       }
     }
+
+    // filtros em tempo real
+    filterAgent.addEventListener('change', () => {
+      const cached = sessionStorage.getItem('ccusageDaily');
+      if (cached) {
+        try {
+          render(JSON.parse(cached));
+        } catch (_) { setStatus(''); }
+      }
+    });
+
+    filterModel.addEventListener('change', () => {
+      const cached = sessionStorage.getItem('ccusageDaily');
+      if (cached) {
+        try {
+          render(JSON.parse(cached));
+        } catch (_) { setStatus(''); }
+      }
+    });
+
+    // ordenação de cabeçalho
+    tbody.parentElement.addEventListener('click', e => {
+      const th = e.target.closest('th');
+      if (!th || !th.dataset.key) return;
+      if (sortKey === th.dataset.key) sortDir = sortDir === 'desc' ? 'asc' : 'desc';
+      else { sortKey = th.dataset.key; sortDir = 'desc'; }
+      render(rows);
+      document.querySelectorAll('thead th').forEach(t => t.classList.remove('asc', 'desc'));
+      th.classList.add(sortDir);
+    });
+
+    // limpar sessionStorage
+    document.getElementById('btnClear').addEventListener('click', () => {
+      sessionStorage.removeItem('ccusageDaily');
+      location.reload();
+    });
 
     btn.addEventListener('click', update);
 
     const cached = sessionStorage.getItem('ccusageDaily');
     if (cached) {
       try {
-        render(JSON.parse(cached));
+        const data = JSON.parse(cached);
+        populateAgentFilter(data);
+        render(data);
         setStatus('dados da sessão');
       } catch (_) {
         setStatus('');
+        caption.textContent = 'Clique em Atualizar para buscar os dados.';
       }
     } else {
       setStatus('');
       caption.textContent = 'Clique em Atualizar para buscar os dados.';
     }
-
-    tickCooldown();
   </script>
 </body>
 </html>
