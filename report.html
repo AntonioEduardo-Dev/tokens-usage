@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Relatório por modelo — terminal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --surface: #121212;
+      --fg: #e0e0e0;
+      --muted: #6b6b6b;
+      --accent: #00ff00;
+      --warn: #ffbf00;
+      --danger: #ff4d4d;
+      --line: #3a3a3a;
+      --border: #252525;
+      --radius: 0px;
+      --font-mono: "Fira Code", "Anonymous Pro", "Courier New", monospace;
+    }
+
+    * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: var(--font-mono), monospace;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .wrap { max-width: 1160px; margin: 0 auto; padding: 20px; }
+
+    header { display: flex; gap: 10px; align-items: center; margin-bottom: 18px; flex-wrap: wrap; justify-content: space-between; }
+    header h1 { font-size: 24px; font-weight: 400; letter-spacing: -.02em; margin: 0; }
+    header p { margin: 4px 0 0; color: var(--muted); font-size: 12px; max-width: 52ch; }
+    .back { font-size: 12px; color: var(--accent); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+    .back:hover { text-decoration: underline; }
+
+    /* filtros */
+    .filters { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+    .filters select, .filters input {
+      font-family: var(--font-mono); font-size: 12px; padding: 6px 10px;
+      background: var(--border); border: 1px solid var(--line);
+      color: var(--fg); border-radius: 0; min-width: 150px;
+    }
+    .filters input { flex: 1; min-width: 200px; }
+    .filters select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 12 8' fill='none' stroke='%236b6b6b'%3E%3Cpath d='M2 2l5 5 5-5'%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px top 50%; padding-right: 28px; }
+    .filters select:focus, .filters input:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+    /* resumo executivo */
+    .exec { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 20px; }
+    .exec .cell { background: var(--surface); border: 1px solid var(--line); padding: 12px 14px; }
+    .exec .label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing:.08em; margin-bottom: 4px; }
+    .exec .value { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 18px; font-weight: 500; }
+
+    /* botoes */
+    .refresh { font: 500 13px/1 var(--font-mono); color: #fff; background: var(--ink); border: 1px solid var(--ink); border-radius: 0; padding: 8px 16px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: background .12s ease; }
+    .refresh:hover { background: var(--accent); color: #000; }
+    .refresh:active { background: #00cc00; }
+    .refresh:disabled { opacity: .4; cursor: not-allowed; }
+    .refresh:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .refresh svg { width: 14px; height: 14px; }
+    .refresh.busy svg { animation: spin .9s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .status { font-size: 11px; color: var(--muted); margin-left: 8px; }
+
+    /* cards */
+    .card { background: var(--surface); border: 1px solid var(--line); margin-bottom: 18px; padding: 16px 20px; }
+    .card h2 { margin: 0 0 12px; font-size: 16px; color: var(--accent); text-transform: uppercase; letter-spacing: .08em; }
+
+    /* tabela */
+    .table-shell { overflow-x: auto; margin-bottom: 10px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    caption { text-align: left; font-size: 11px; color: var(--muted); padding: 0 0 6px; }
+    thead th { color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing:.08em; padding: 0 8px 6px; border-bottom: 1px solid var(--line); white-space: nowrap; text-align: left; cursor: pointer; user-select: none; }
+    thead th:hover { color: var(--fg); }
+    thead th.asc:after { content: " ▼"; color: var(--accent); font-size: .6em; }
+    thead th.desc:after { content: " ▲"; color: var(--accent); font-size: .6em; }
+    thead th:first-child { padding-left: 0; }
+    thead th.num { text-align: right; cursor: pointer; }
+    tbody td { padding: 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+    tbody tr:hover { background: rgba(0,255,0,.04); }
+    tbody td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    tbody td.model { color: var(--fg); font-weight: 500; }
+
+    .badge { display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 0; font-weight: 500; }
+    .badge.cheap { color: #000; background: var(--accent); }
+    .badge.med { color: #000; background: var(--warn); }
+    .badge.exp { color: #fff; background: var(--danger); }
+
+    .bar-wrap { position: relative; height: 9px; background: var(--border); width: 100%; }
+    .bar { height: 100%; background: var(--accent); opacity: .65; }
+
+    /* tiers */
+    .tiers { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 12px; }
+    .tier-col { background: var(--surface); border: 1px solid var(--line); padding: 10px 12px; }
+    .tier-col h3 { margin: 0 0 8px; font-size: 11px; text-transform: uppercase; letter-spacing:.06em; }
+    .tier-col ul { list-style: none; margin: 0; padding: 0; font-size: 12px; }
+    .tier-col li { margin: 0 0 5px; color: var(--fg); }
+
+    footer.note { margin-top: 18px; font-size: 11px; color: var(--muted); line-height: 1.5; }
+    footer.note code { font-size: 11px; background: var(--surface); color: var(--accent); padding: 2px 6px; border-radius: 0; }
+
+    .empty { padding: 40px 0; text-align: center; color: var(--muted); font-size: 14px; }
+
+    @media (max-width: 700px) {
+      .wrap { padding: 16px 12px; }
+      .exec { grid-template-columns: 1fr; }
+      .filters { gap: 6px; }
+      .filters input { min-width: 150px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <div>
+        <h1>Relatório por modelo</h1>
+        <p>Quais modelos consomem mais/menos por chamada — análise para decidir o que usar dentro do seu limite semanal/diário.</p>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button id="btnRefresh" class="refresh" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 12a9 9 0 1 1-2.64-6.36"></path>
+            <path d="M21 3v6h-6"></path>
+          </svg>
+          <span id="btnLabel">Atualizar</span>
+        </button>
+        <a href="/" class="back">← Voltar ao painel</a>
+        <span id="status" class="status"></span>
+      </div>
+    </header>
+
+    <!-- resumo executivo -->
+    <div class="exec" id="exec" style="display:none">
+      <div class="cell"><div class="label">Modelos analisados</div><div class="value" id="sumModels">0</div></div>
+      <div class="cell"><div class="label">Sessões totais</div><div class="value" id="sumSessions">0</div></div>
+      <div class="cell"><div class="label">Tokens totais</div><div class="value" id="sumTokens">0</div></div>
+      <div class="cell"><div class="label">Custo total</div><div class="value" id="sumCost">0</div></div>
+      <div class="cell"><div class="label">Custo médio/1k tok</div><div class="value" id="sumAvg">0</div></div>
+    </div>
+
+    <!-- tabela -->
+    <div class="card">
+      <h2>Detalhe por modelo</h2>
+      <div class="filters">
+        <input id="filterSearch" type="search" placeholder="Buscar modelo…" aria-label="Buscar modelo">
+        <select id="filterTier" aria-label="Filtrar por tier">
+          <option value="">Todos os tiers</option>
+          <option value="cheap">Usar (barato)</option>
+          <option value="med">Uso moderado</option>
+          <option value="exp">Evitar (caro)</option>
+        </select>
+        <button id="btnExport" class="refresh" type="button">Exportar CSV</button>
+      </div>
+      <div class="table-shell">
+        <table>
+          <caption id="caption">Carregando…</caption>
+          <thead>
+            <tr>
+              <th scope="col" data-key="name">Modelo <span class="sort-indicator"></span></th>
+              <th scope="col" data-key="sessions" class="num">Sessões <span class="sort-indicator"></span></th>
+              <th scope="col" data-key="inputTokens" class="num">Input <span class="sort-indicator"></span></th>
+              <th scope="col" data-key="outputTokens" class="num">Saída <span class="sort-indicator"></span></th>
+              <th scope="col" data-key="cacheTokens" class="num">Cache <span class="sort-indicator"></span></th>
+              <th scope="col" data-key="totalTokens" class="num">Total <span class="sort-indicator"></span></th>
+              <th scope="col" data-key="cost" class="num">Custo <span class="sort-indicator"></span></th>
+              <th scope="col" data-key="costPer1kTokens" class="num">Custo / 1k tok <span class="sort-indicator"></span></th>
+              <th scope="col" data-key="avgCostPerSession" class="num">Custo / sessão <span class="sort-indicator"></span></th>
+              <th scope="col" data-key="outputRatio" class="num">Saída/Entrada <span class="sort-indicator"></span></th>
+              <th scope="col">Tier</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- tiers recomendacao -->
+    <div class="card">
+      <h2>Recomendação de uso</h2>
+      <div class="tiers" id="tiers"></div>
+      <div id="advice" style="margin-top:10px;font-size:12px;color:var(--muted);"></div>
+    </div>
+
+    <footer class="note">
+      Fonte: <code>ccusage session --json</code>. O ccusage não expõe contagem de requests; o "custo / sessão" é o proxy de consumo por chamada.<br>
+      <strong>Como ler:</strong> menor <code>custo / 1k tok</code> e <code>custo / sessão</code> = modelo mais barato. Use os <span style="color:var(--accent)">baratos</span> para volume e reserve os <span style="color:var(--danger)">caros</span> para tarefas complexas, mantendo-se dentro do limite semanal/diário.
+    </footer>
+  </main>
+
+  <script>
+    const nf = new Intl.NumberFormat('pt-BR');
+    const cf = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'USD' });
+    const c4 = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 6, maximumFractionDigits: 6 });
+
+    const $ = (id) => document.getElementById(id);
+    const tbody = $('tbody');
+    const btn = $('btnRefresh');
+    const btnLabel = $('btnLabel');
+    const statusEl = $('status');
+    const exec = $('exec');
+    const tiersEl = $('tiers');
+    const adviceEl = $('advice');
+    const caption = $('caption');
+
+    let models = [];
+    let sortKey = 'costPer1kTokens';
+    let sortDir = 'asc';
+    let searchVal = '';
+    let tierVal = '';
+
+    function escHtml(s) {
+      const div = document.createElement('div');
+      div.textContent = s;
+      return div.innerHTML;
+    }
+
+    function tierOf(costPer1k) {
+      if (costPer1k < 0.001) return 'cheap';
+      if (costPer1k < 0.01) return 'med';
+      return 'exp';
+    }
+
+    function labelOf(tier) {
+      if (tier === 'cheap') return 'Usar';
+      if (tier === 'med') return 'Uso moderado';
+      return 'Evitar';
+    }
+
+    function colorOf(tier) {
+      if (tier === 'cheap') return 'var(--accent)';
+      if (tier === 'med') return 'var(--warn)';
+      return 'var(--danger)';
+    }
+
+    function render() {
+      // filtros
+      let filtered = models.filter(m => {
+        const sm = m.name.toLowerCase();
+        const matchSearch = !searchVal || sm.includes(searchVal);
+        const matchTier = !tierVal || tierOf(m.costPer1kTokens) === tierVal;
+        return matchSearch && matchTier;
+      });
+
+      // ordenacao
+      filtered.sort((a, b) => {
+        const av = a[sortKey]; const bv = b[sortKey];
+        if (typeof av === 'string') return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+        return sortDir === 'asc' ? av - bv : bv - av;
+      });
+
+      // exec
+      const modelsCount = filtered.length;
+      const sessions = filtered.reduce((a,m)=>a+m.sessions,0);
+      const tokens = filtered.reduce((a,m)=>a+m.totalTokens,0);
+      const cost = filtered.reduce((a,m)=>a+m.cost,0);
+      const avg = tokens ? cost/tokens*1000 : 0;
+
+      $('sumModels').textContent = nf.format(modelsCount);
+      $('sumSessions').textContent = nf.format(sessions);
+      $('sumTokens').textContent = nf.format(tokens);
+      $('sumCost').textContent = cf.format(cost);
+      $('sumAvg').textContent = c4.format(avg);
+      exec.style.display = modelsCount ? 'grid' : 'none';
+
+      // tabela
+      if (!filtered.length) {
+        caption.textContent = 'Sem modelos correspondentes';
+        tbody.innerHTML = '<tr><td colspan="11" class="empty">Nenhum registro corresponde aos filtros.</td></tr>';
+        tiersEl.innerHTML = '';
+        adviceEl.textContent = '';
+        return;
+      }
+
+      caption.textContent = `${filtered.length} ${filtered.length === 1 ? 'modelo' : 'modelos'} — ordenado por ${sortKey} ${sortDir === 'asc' ? 'crescente' : 'decrescente'}`;
+
+      const maxTokens = Math.max(1, ...filtered.map(m=>m.totalTokens));
+      const maxCost = Math.max(1, ...filtered.map(m=>m.cost));
+
+      tbody.innerHTML = '';
+      const tiers = { cheap:[], med:[], exp:[] };
+
+      for (const m of filtered) {
+        const t = tierOf(m.costPer1kTokens);
+        tiers[t].push(m);
+        const cache = m.cacheReadTokens + m.cacheCreationTokens;
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="model">${escHtml(m.name)}</td>
+          <td class="num">${nf.format(m.sessions)}</td>
+          <td class="num">${nf.format(m.inputTokens)}</td>
+          <td class="num">${nf.format(m.outputTokens)}</td>
+          <td class="num">${nf.format(cache)}</td>
+          <td class="num">${nf.format(m.totalTokens)}</td>
+          <td class="num">${cf.format(m.cost)}</td>
+          <td class="num">${c4.format(m.costPer1kTokens)}</td>
+          <td class="num">${cf.format(m.avgCostPerSession)}</td>
+          <td class="num">${m.outputRatio.toFixed(3)}</td>
+          <td><span class="badge ${t}">${labelOf(t)}</span></td>
+        `;
+        tbody.appendChild(tr);
+      }
+
+      // tiers
+      const tierLabels = { cheap:'USAR — barato', med:'USO MODERADO', exp:'EVITAR — caro' };
+      tiersEl.innerHTML = Object.keys(tiers).map(key => {
+        const arr = tiers[key];
+        if (!arr.length) return '';
+        return `<div class="tier-col">
+          <h3 style="color:${colorOf(key)}">${tierLabels[key]} (${arr.length})</h3>
+          <ul>${arr.map(m => `<li class="${key}">${escHtml(m.name)} — ${cf.format(m.avgCostPerSession)}/sessão · ${c4.format(m.costPer1kTokens)}/1k tok</li>`).join('')}</ul>
+        </div>`;
+      }).join('');
+
+      // advice
+      const cheapCount = tiers.cheap.length;
+      const expCount = tiers.exp.length;
+      adviceEl.textContent = `${cheapCount} modelo(s) barato(s) disponível(is) para volume; ${expCount} modelo(s) caro(s) — reserve para tarefas complexas.`;
+    }
+
+    async function update() {
+      btn.disabled = true;
+      btn.classList.add('busy');
+      btnLabel.textContent = 'Calculando';
+      statusEl.textContent = 'Rodando ccusage session…';
+      try {
+        const res = await fetch('/api/ccusage-models', { method: 'POST' });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
+        models = Array.isArray(body) ? body : [];
+        sessionStorage.setItem('ccusageModels', JSON.stringify(models));
+        render();
+        statusEl.textContent = `${models.length} modelo(s) analisado(s)`;
+      } catch (err) {
+        const cached = sessionStorage.getItem('ccusageModels');
+        if (cached) {
+          try {
+            models = JSON.parse(cached);
+            render();
+            statusEl.textContent = 'Dados da sessão (offline)';
+          } catch (_) {
+            statusEl.textContent = 'Falha: ' + err.message;
+          }
+        } else {
+          statusEl.textContent = 'Falha: ' + err.message;
+        }
+      } finally {
+        btn.disabled = false;
+        btn.classList.remove('busy');
+        btnLabel.textContent = 'Atualizar';
+      }
+    }
+
+    // filtros
+    $('filterSearch').addEventListener('input', () => { searchVal = $('filterSearch').value.toLowerCase(); render(); });
+    $('filterTier').addEventListener('change', () => { tierVal = $('filterTier').value; render(); });
+
+    // ordenacao por cabecalho
+    document.querySelectorAll('thead th[data-key]').forEach(th => {
+      th.addEventListener('click', () => {
+        const key = th.dataset.key;
+        if (sortKey === key) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+        else { sortKey = key; sortDir = 'desc'; }
+        document.querySelectorAll('thead th').forEach(t => t.classList.remove('asc','desc'));
+        th.classList.add(sortDir);
+        render();
+      });
+    });
+
+    // export csv
+    $('btnExport').addEventListener('click', () => {
+      let filtered = models.filter(m => {
+        const sm = m.name.toLowerCase();
+        const matchSearch = !searchVal || sm.includes(searchVal);
+        const matchTier = !tierVal || tierOf(m.costPer1kTokens) === tierVal;
+        return matchSearch && matchTier;
+      });
+      const headers = ['Modelo','Sessoes','Input','Saida','Cache','Total Tokens','Custo','Custo/1k Tok','Custo/Sessao','Saida/Entrada','Tier'];
+      const rows = [headers.join(',')].concat(filtered.map(m => {
+        const cache = m.cacheReadTokens + m.cacheCreationTokens;
+        const t = tierOf(m.costPer1kTokens);
+        return [m.name, m.sessions, m.inputTokens, m.outputTokens, cache, m.totalTokens, m.cost, m.costPer1kTokens, m.avgCostPerSession, m.outputRatio.toFixed(3), labelOf(t)].join(',');
+      }));
+      const blob = new Blob([rows.join('\n')], {type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'relatorio-modelos.csv'; a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    btn.addEventListener('click', update);
+
+    // init
+    const cached = sessionStorage.getItem('ccusageModels');
+    if (cached) {
+      try {
+        models = JSON.parse(cached);
+        render();
+        statusEl.textContent = `${models.length} modelo(s) da sessão`;
+      } catch (_) { update(); }
+    } else { update(); }
+  </script>
+</body>
+</html>
