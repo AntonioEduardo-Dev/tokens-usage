@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Consumo diário — tokens e custo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --paper: #f2f4f1;
+      --surface: #fbfcfa;
+      --ink: #17201f;
+      --muted: #5c6a67;
+      --line: #d6ddd8;
+      --line-strong: #b9c3bd;
+      --accent: #1f5bd6;
+      --accent-soft: #e3ebfb;
+      --radius: 3px;
+      --font-ui: "IBM Plex Sans", system-ui, sans-serif;
+      --font-data: "IBM Plex Mono", ui-monospace, monospace;
+      --font-display: "Instrument Serif", Georgia, serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { -webkit-text-size-adjust: 100%; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--font-ui);
+      font-size: 15px;
+      line-height: 1.5;
+      background-image:
+        linear-gradient(to right, rgba(23,32,31,.035) 1px, transparent 1px);
+      background-size: 96px 100%;
+    }
+
+    .wrap {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 56px 32px 96px;
+    }
+
+    header.masthead {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+      padding-bottom: 28px;
+      border-bottom: 1px solid var(--ink);
+    }
+
+    .title-block h1 {
+      font-family: var(--font-display);
+      font-weight: 400;
+      font-size: clamp(40px, 6vw, 64px);
+      line-height: .95;
+      letter-spacing: -.01em;
+      margin: 0;
+    }
+
+    .title-block p {
+      margin: 12px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      max-width: 46ch;
+    }
+
+    .actions {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    button.refresh {
+      font: 500 14px/1 var(--font-ui);
+      color: #fff;
+      background: var(--ink);
+      border: 1px solid var(--ink);
+      border-radius: var(--radius);
+      padding: 12px 22px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      transition: background .15s ease, transform .06s ease;
+    }
+    button.refresh:hover { background: var(--accent); border-color: var(--accent); }
+    button.refresh:active { transform: translateY(1px); }
+    button.refresh:disabled { opacity: .55; cursor: progress; }
+    button.refresh.cooldown:disabled { cursor: not-allowed; }
+    button.refresh:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+    }
+    button.refresh svg { width: 15px; height: 15px; }
+    button.refresh.busy svg { animation: spin .9s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .status {
+      font-family: var(--font-data);
+      font-size: 11.5px;
+      color: var(--muted);
+      min-height: 1em;
+      text-align: right;
+    }
+    .status.error { color: #b4262b; }
+
+    /* ---- ledger summary ---- */
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      border-bottom: 1px solid var(--line-strong);
+    }
+    .summary .cell {
+      padding: 22px 24px 20px;
+      border-left: 1px solid var(--line);
+    }
+    .summary .cell:first-child { border-left: 0; padding-left: 0; }
+    .summary .label {
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: .01em;
+    }
+    .summary .value {
+      font-family: var(--font-data);
+      font-variant-numeric: tabular-nums;
+      font-size: clamp(22px, 3vw, 30px);
+      font-weight: 500;
+      letter-spacing: -.02em;
+      margin-top: 4px;
+    }
+    .summary .value .unit {
+      font-size: .5em;
+      color: var(--muted);
+      margin-left: 4px;
+      letter-spacing: 0;
+    }
+
+    /* ---- table ---- */
+    .table-shell {
+      margin-top: 34px;
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    caption {
+      text-align: left;
+      font-size: 12px;
+      color: var(--muted);
+      padding-bottom: 10px;
+    }
+    thead th {
+      font-weight: 500;
+      font-size: 11.5px;
+      color: var(--muted);
+      text-align: left;
+      padding: 0 12px 10px;
+      border-bottom: 1px solid var(--line-strong);
+      white-space: nowrap;
+    }
+    thead th:first-child { padding-left: 0; }
+    thead th.num { text-align: right; }
+    tbody td {
+      padding: 13px 12px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: middle;
+    }
+    tbody td:first-child { padding-left: 0; }
+    tbody tr { transition: background .12s ease; }
+    tbody tr:hover { background: var(--surface); }
+    tbody tr:last-child td { border-bottom: 1px solid var(--line-strong); }
+
+    .date {
+      font-family: var(--font-data);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+      color: var(--ink);
+    }
+    .agent {
+      display: inline-block;
+      font-size: 12px;
+      padding: 2px 8px;
+      border: 1px solid var(--line-strong);
+      border-radius: 999px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .models {
+      color: var(--muted);
+      font-size: 12.5px;
+      max-width: 220px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    td.num {
+      text-align: right;
+      font-family: var(--font-data);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+      color: #2c3735;
+    }
+    td.total { position: relative; }
+    .bar {
+      position: absolute;
+      left: 0; bottom: 6px;
+      height: 3px;
+      background: var(--accent);
+      opacity: .28;
+      border-radius: 2px;
+      transition: width .35s ease;
+    }
+    td.cost {
+      text-align: right;
+      font-family: var(--font-data);
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    tfoot td {
+      padding: 14px 12px 0;
+      border-top: 1px solid var(--ink);
+      font-family: var(--font-data);
+      font-variant-numeric: tabular-nums;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    tfoot td:first-child { padding-left: 0; text-align: left; }
+    tfoot td.num, tfoot td.cost { text-align: right; }
+    tfoot td.cost { color: var(--ink); font-weight: 600; }
+
+    .empty, .error-row {
+      padding: 48px 0;
+      text-align: center;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .error-row { color: #b4262b; }
+
+    footer.note {
+      margin-top: 28px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    footer.note code {
+      font-family: var(--font-data);
+      font-size: 11.5px;
+      background: var(--accent-soft);
+      color: #23408a;
+      padding: 2px 6px;
+      border-radius: var(--radius);
+    }
+
+    @media (max-width: 720px) {
+      .wrap { padding: 36px 18px 64px; }
+      header.masthead { flex-direction: column; align-items: flex-start; }
+      .actions { align-items: flex-start; }
+      .summary { grid-template-columns: 1fr; }
+      .summary .cell { border-left: 0; border-top: 1px solid var(--line); padding-left: 0; padding-right: 0; }
+      .summary .cell:first-child { border-top: 0; }
+      .models { max-width: 130px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header class="masthead">
+      <div class="title-block">
+        <h1>Consumo diário</h1>
+        <p>Tokens e custo por dia nas suas ferramentas de código. Fonte: <code>ccusage daily</code>.</p>
+      </div>
+      <div class="actions">
+        <button id="btnUpdate" class="refresh" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 12a9 9 0 1 1-2.64-6.36"></path>
+            <path d="M21 3v6h-6"></path>
+          </svg>
+          <span id="btnLabel">Atualizar</span>
+        </button>
+        <span id="status" class="status" role="status" aria-live="polite"></span>
+      </div>
+    </header>
+
+    <section class="summary" aria-label="Resumo">
+      <div class="cell">
+        <div class="label">Custo total</div>
+        <div class="value" id="sumCost">—</div>
+      </div>
+      <div class="cell">
+        <div class="label">Tokens totais</div>
+        <div class="value" id="sumTokens">—</div>
+      </div>
+      <div class="cell">
+        <div class="label">Dias registrados</div>
+        <div class="value" id="sumDays">—</div>
+      </div>
+    </section>
+
+    <div class="table-shell">
+      <table>
+        <caption id="caption">Carregando…</caption>
+        <thead>
+          <tr>
+            <th scope="col">Data</th>
+            <th scope="col">Agente</th>
+            <th scope="col">Modelos</th>
+            <th scope="col" class="num">Entrada</th>
+            <th scope="col" class="num">Saída</th>
+            <th scope="col" class="num">Cache</th>
+            <th scope="col" class="num">Total</th>
+            <th scope="col" class="num">Custo</th>
+          </tr>
+        </thead>
+        <tbody id="tbody">
+          <tr><td colspan="8" class="empty">Ainda sem dados. Clique em Atualizar.</td></tr>
+        </tbody>
+        <tfoot id="tfoot" hidden>
+          <tr>
+            <td colspan="3">Total do período</td>
+            <td class="num" id="footIn"></td>
+            <td class="num" id="footOut"></td>
+            <td class="num" id="footCache"></td>
+            <td class="num" id="footTotal"></td>
+            <td class="cost" id="footCost"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <footer class="note">
+      Dados em <code>sessionStorage</code>; atualizar reexecuta <code>npx ccusage@latest daily --json</code> na sua máquina.
+    </footer>
+  </main>
+
+  <script>
+    const nf = new Intl.NumberFormat('pt-BR');
+    const cf = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'USD' });
+    const compact = new Intl.NumberFormat('pt-BR', { notation: 'compact', maximumFractionDigits: 1 });
+
+    const $ = (id) => document.getElementById(id);
+    const tbody = $('tbody');
+    const btn = $('btnUpdate');
+    const btnLabel = $('btnLabel');
+    const statusEl = $('status');
+    const caption = $('caption');
+    const tfoot = $('tfoot');
+
+    let rows = [];
+    let maxTotal = 1;
+
+    function fmtDate(period) {
+      if (!period) return '—';
+      const [y, m, d] = period.split('-');
+      if (!y || !m || !d) return period;
+      return `${d}/${m}/${y}`;
+    }
+
+    function esc(s) {
+      return String(s).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    function setStatus(text, isError = false) {
+      statusEl.textContent = text;
+      statusEl.classList.toggle('error', isError);
+    }
+
+    function summarize(data) {
+      const tokens = data.reduce((a, r) => a + (r.totalTokens || 0), 0);
+      const cost = data.reduce((a, r) => a + (r.totalCost || 0), 0);
+      const days = new Set(data.map((r) => r.period)).size;
+      $('sumCost').innerHTML = cf.format(cost);
+      $('sumTokens').innerHTML = `${compact.format(tokens)}<span class="unit">tokens</span>`;
+      $('sumDays').innerHTML = `${nf.format(days)}<span class="unit">${days === 1 ? 'dia' : 'dias'}</span>`;
+    }
+
+    function render(data) {
+      rows = Array.isArray(data) ? data.slice() : [];
+      rows.sort((a, b) => String(b.period).localeCompare(String(a.period)));
+      maxTotal = Math.max(1, ...rows.map((r) => r.totalTokens || 0));
+
+      tbody.innerHTML = '';
+      if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="8" class="empty">Nenhum registro de uso ainda.</td></tr>';
+        tfoot.hidden = true;
+        caption.textContent = 'Sem dados';
+        summarize([]);
+        return;
+      }
+
+      const frag = document.createDocumentFragment();
+      for (const r of rows) {
+        const cache = (r.cacheCreationTokens || 0) + (r.cacheReadTokens || 0);
+        const total = r.totalTokens || 0;
+        const pct = Math.max(2, Math.round((total / maxTotal) * 100));
+        const models = (r.modelsUsed || []).join(', ');
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="date">${fmtDate(r.period)}</td>
+          <td><span class="agent">${esc(r.agent || '—')}</span></td>
+          <td class="models" title="${esc(models)}">${esc(models || '—')}</td>
+          <td class="num">${nf.format(r.inputTokens || 0)}</td>
+          <td class="num">${nf.format(r.outputTokens || 0)}</td>
+          <td class="num">${nf.format(cache)}</td>
+          <td class="num total">${nf.format(total)}<span class="bar" style="width:${pct}%"></span></td>
+          <td class="cost">${cf.format(r.totalCost || 0)}</td>`;
+        frag.appendChild(tr);
+      }
+      tbody.appendChild(frag);
+
+      const sum = (k) => rows.reduce((a, r) => a + (r[k] || 0), 0);
+      $('footIn').textContent = nf.format(sum('inputTokens'));
+      $('footOut').textContent = nf.format(sum('outputTokens'));
+      $('footCache').textContent = nf.format(sum('cacheCreationTokens') + sum('cacheReadTokens'));
+      $('footTotal').textContent = nf.format(sum('totalTokens'));
+      $('footCost').textContent = cf.format(sum('totalCost'));
+      tfoot.hidden = false;
+
+      const first = rows[rows.length - 1].period;
+      const last = rows[0].period;
+      caption.textContent = `${rows.length} ${rows.length === 1 ? 'registro' : 'registros'} • ${fmtDate(first)} a ${fmtDate(last)}`;
+      summarize(rows);
+    }
+
+    function renderError(msg) {
+      tbody.innerHTML = `<tr><td colspan="8" class="error-row">${esc(msg)}</td></tr>`;
+      tfoot.hidden = true;
+      caption.textContent = 'Falha ao carregar';
+      summarize([]);
+    }
+
+    const COOLDOWN_MS = 5 * 60 * 1000;
+    let cooldownTimer = null;
+
+    function cooldownLeft() {
+      const last = Number(localStorage.getItem('ccusageLastCall')) || 0;
+      return Math.max(0, last + COOLDOWN_MS - Date.now());
+    }
+
+    function tickCooldown() {
+      const left = cooldownLeft();
+      if (left > 0) {
+        btn.disabled = true;
+        btn.classList.add('cooldown');
+        const m = Math.floor(left / 60000);
+        const s = Math.floor((left % 60000) / 1000);
+        btnLabel.textContent = `Aguarde ${m}:${String(s).padStart(2, '0')}`;
+        if (!cooldownTimer) cooldownTimer = setInterval(tickCooldown, 1000);
+        return;
+      }
+      if (cooldownTimer) {
+        clearInterval(cooldownTimer);
+        cooldownTimer = null;
+      }
+      btn.classList.remove('cooldown');
+      if (!busy) {
+        btn.disabled = false;
+        btnLabel.textContent = 'Atualizar';
+      }
+    }
+
+    let busy = false;
+    async function update() {
+      if (busy || cooldownLeft() > 0) return;
+      busy = true;
+      btn.disabled = true;
+      btn.classList.add('busy');
+      btnLabel.textContent = 'Atualizando';
+      setStatus('executando ccusage…');
+
+      const started = performance.now();
+      try {
+        const res = await fetch('/api/ccusage-daily', { method: 'POST' });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
+        const data = Array.isArray(body) ? body : [];
+        sessionStorage.setItem('ccusageDaily', JSON.stringify(data));
+        render(data);
+        const secs = ((performance.now() - started) / 1000).toFixed(1);
+        setStatus(`atualizado em ${secs}s`);
+      } catch (err) {
+        renderError('Não foi possível executar ccusage. ' + err.message);
+        setStatus('falhou', true);
+      } finally {
+        busy = false;
+        btn.classList.remove('busy');
+        localStorage.setItem('ccusageLastCall', String(Date.now()));
+        tickCooldown();
+      }
+    }
+
+    btn.addEventListener('click', update);
+
+    const cached = sessionStorage.getItem('ccusageDaily');
+    if (cached) {
+      try {
+        render(JSON.parse(cached));
+        setStatus('dados da sessão');
+      } catch (_) {
+        setStatus('');
+      }
+    } else {
+      setStatus('');
+      caption.textContent = 'Clique em Atualizar para buscar os dados.';
+    }
+
+    tickCooldown();
+  </script>
+</body>
+</html>
